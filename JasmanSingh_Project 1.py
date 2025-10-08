@@ -7,6 +7,7 @@
 # Step 1
 import pandas as pd
 
+# Reading csv file
 data = pd.read_csv("Project 1 Data.csv")
 
 
@@ -15,7 +16,7 @@ data = pd.read_csv("Project 1 Data.csv")
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Basic statistics of dataset
+# Basic information about dataset
 print("First 5 rows:\n", data.head())
 print("\nDataset info:\n", data.info())
 print("\nStep distribution:\n", data['Step'].value_counts().sort_index())
@@ -31,9 +32,11 @@ plt.show()
 # Step 3
 import seaborn as sns
 
+# Computing correlation between numeric features
 corr = data.corr(numeric_only=True)
 print("Correlation matrix:\n", corr, "\n")
 
+# Heatmap for visual correlation understanding
 plt.figure(figsize=(8, 6))
 sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f")
 plt.title("Feature Correlation Heatmap")
@@ -51,9 +54,11 @@ from sklearn.metrics import (
     f1_score, confusion_matrix, classification_report
 )
 
+# Selecting features and target variables
 X = data[['X', 'Y', 'Z']]
 y = data['Step']
 
+# Splitting data set into training and testing
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
@@ -85,6 +90,7 @@ models = {
 
 best_models = {}
 
+# 5-fold cross-validation for training and evaluating each model
 for name, (model, params) in models.items():
     grid = GridSearchCV(model, params, cv=5, scoring='accuracy', n_jobs=-1)
     grid.fit(X_train, y_train)
@@ -148,6 +154,7 @@ for name, model in best_models.items():
 
 
 # Step 6
+# Combining random forest and svm while using logistic regression as final estimator
 base_learners = [
     ('rf', best_models['Random Forest']),
     ('svm', best_models['SVM'])
@@ -166,6 +173,7 @@ print("Accuracy:", round(accuracy_score(y_test, stack_preds), 4))
 print("Precision:", round(precision_score(y_test, stack_preds, average='weighted', zero_division=0), 4))
 print("F1 Score:", round(f1_score(y_test, stack_preds, average='weighted', zero_division=0), 4))
 
+# Cofusion matrix for stacked model
 cm_stack = confusion_matrix(y_test, stack_preds)
 plt.figure(figsize=(7, 5))
 sns.heatmap(cm_stack, annot=True, fmt='d', cmap='Blues')
@@ -173,3 +181,26 @@ plt.title("Confusion Matrix: Stacked Model")
 plt.xlabel("Predicted")
 plt.ylabel("Actual")
 plt.show()
+
+
+
+# Step 7
+import joblib
+best_model = best_models['SVM']  # choosing top performer
+joblib.dump(best_model, 'maintenance_step_model.joblib')
+print("\nBest model saved as 'maintenance_step_model.joblib'")
+
+# Load and predict on new coordinates
+loaded = joblib.load('maintenance_step_model.joblib')
+test_points = [
+    [9.375, 3.0625, 1.51],
+    [6.995, 5.125, 0.3875],
+    [0, 3.0625, 1.93],
+    [9.4, 3, 1.8],
+    [9.4, 3, 1.3]
+]
+
+preds = loaded.predict(test_points)
+print("\nPredicted maintenance steps for given coordinates:")
+for i, p in enumerate(preds, start=1):
+    print(f"Set {i}: Step {p}")
